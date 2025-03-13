@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Bin & Case Calculator</title>
+  <style>
+    body {
+      background-color: black;
+      color: green;
+      font-family: 'Calibri', sans-serif;
+      margin: 0;
+      padding: 1rem;
+    }
+    label {
+      display: inline-block;
+      width: 200px;
+      margin-bottom: 0.5rem;
+    }
+    input {
+      width: 100px;
+      margin-bottom: 0.5rem;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .divider {
+      margin: 1rem 0;
+      border-top: 1px solid white;
+    }
+    .button {
+      background-color: dodgerblue;
+      color: white;
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .button:hover {
+      background-color: #1d86d9;
+    }
+    h1 {
+      text-align: center;
+    }
+    .output {
+      color: green;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bin & Case Calculator</h1>
+
+    <!-- Input Fields -->
+    <div>
+      <label for="line">Pack line:</label>
+      <input type="number" id="line" />
+    </div>
+
+    <div>
+      <label for="lspc">Left side packcode:</label>
+      <input type="number" id="lspc" />
+    </div>
+
+    <div>
+      <label for="rspc">Right side packcode:</label>
+      <input type="number" id="rspc" />
+    </div>
+
+    <div>
+      <label for="tcn">Total cases needed:</label>
+      <input type="number" id="tcn" />
+    </div>
+
+    <div>
+      <label for="tbd">Total bins dumped:</label>
+      <input type="number" id="tbd" />
+    </div>
+
+    <div>
+      <label for="tbw">Total bin weight:</label>
+      <input type="number" id="tbw" />
+    </div>
+
+    <div>
+      <label for="tcm">Total cases made:</label>
+      <input type="number" id="tcm" />
+    </div>
+
+    <div>
+      <label for="sizer">Sizer fullness %:</label>
+      <input type="number" id="sizer" />
+    </div>
+
+    <div>
+      <label for="acc1">Accumulator 1:</label>
+      <input type="number" id="acc1" />
+    </div>
+
+    <div>
+      <label for="acc2">Accumulator 2:</label>
+      <input type="number" id="acc2" />
+    </div>
+
+    <div>
+      <label for="acc3">Accumulator 3:</label>
+      <input type="number" id="acc3" />
+    </div>
+
+    <div>
+      <label for="acc4">Accumulator 4:</label>
+      <input type="number" id="acc4" />
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Output Fields -->
+    <div>
+      <label>Bins to ask for:</label>
+      <span class="output" id="bins">*</span>
+    </div>
+
+    <div>
+      <label>Pellets left:</label>
+      <span class="output" id="pelletsLeft">*</span>
+    </div>
+
+    <div>
+      <label>Cases left:</label>
+      <span class="output" id="casesLeft">*</span>
+    </div>
+
+    <div>
+      <label>Cases on line:</label>
+      <span class="output" id="casesOnLine">*</span>
+    </div>
+
+    <div>
+      <label>Average bin weight:</label>
+      <span class="output" id="avgBinWeight">*</span>
+    </div>
+
+    <div>
+      <label>Line utilization:</label>
+      <span class="output" id="lineUtil">*</span>
+    </div>
+
+    <!-- Buttons -->
+    <div style="margin-top: 1rem;">
+      <button class="button" onclick="calculate()">Calculate</button>
+      <button class="button" style="background-color:red;" onclick="resetFields()">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      try {
+        // Retrieve numeric input values
+        const i1 = parseInt(document.getElementById('lspc').value);
+        const i2 = parseInt(document.getElementById('rspc').value);
+        const i3 = parseInt(document.getElementById('tcn').value);
+        const i4 = parseInt(document.getElementById('tbd').value);
+        const i5 = parseInt(document.getElementById('tbw').value);
+        const i6 = parseInt(document.getElementById('tcm').value);
+        const i7 = parseInt(document.getElementById('sizer').value);
+        const i8 = parseInt(document.getElementById('acc1').value);
+        const i9 = parseInt(document.getElementById('acc2').value);
+        const i10 = parseInt(document.getElementById('acc3').value);
+        const i11 = parseInt(document.getElementById('acc4').value);
+        const lineVal = parseInt(document.getElementById('line').value);
+
+        // If any field is NaN, throw an error
+        if ([i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, lineVal].some(isNaN)) {
+          throw new Error('Please enter valid integers in all fields.');
+        }
+
+        // Determine bagp based on right side packcode
+        let bagp = 0;
+        if (i2 === 1) {
+          bagp = 87;
+        } else if (i2 === 2) {
+          bagp = 48;
+        } else if (i2 === 3) {
+          bagp = 32;
+        } else if (i2 === 5) {
+          bagp = 17;
+        }
+
+        // Calculate tfull
+        let tfull = 0;
+        if (lineVal === 1 || lineVal === 4) {
+          tfull = (i8 + i9 + i10) / 3;
+        } else {
+          tfull = (i8 + i9 + i10 + i11) / 4;
+        }
+
+        const bndd   = i1 * i3;              // bags needed
+        const abw    = Math.floor(i5 / i4);  // average bin weight
+        const tlp    = tfull + i7;           // total line percentage
+        const tbol   = tlp * bagp;           // total bags on line
+        const tbol_c = Math.floor(tbol / i1); // total cases on line
+        const bpkd   = i6 * i1;              // bags packed
+        const bpro   = tbol + bpkd;          // bags on line + bags packed
+        const bleft  = bndd - bpro;          // bags left
+        const wndd   = bleft * (i2 + 0.25);  // weight needed
+        const bnleft = Math.floor(wndd / abw);  // bins left to dump
+        const binsAsk = bnleft + i4;         // bins total to ask for
+        const cleft  = i3 - i6;              // cases left
+        const caseW  = i1 * i2;              // weight of one case
+        const wmade  = (i6 + tbol_c) * caseW; // weight packed + weight on line
+
+        // utilization ratio
+        let uti = 0;
+        if (i5 !== 0) {
+          uti = wmade / i5;
+        }
+        const uti2 = Math.floor(uti * 100);
+
+        // pellets left calculation
+        let pleft = 0;
+        if (i1 === 4) {
+          pleft = Math.floor(cleft / 90);
+        } else {
+          pleft = Math.floor(cleft / 60);
+        }
+
+        // Update fields
+        document.getElementById('bins').textContent = binsAsk;
+        document.getElementById('pelletsLeft').textContent = pleft;
+        document.getElementById('casesLeft').textContent = cleft;
+        document.getElementById('casesOnLine').textContent = tbol_c;
+        document.getElementById('avgBinWeight').textContent = abw;
+        document.getElementById('lineUtil').textContent = uti2 + '%';
+
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function resetFields() {
+      // Clear input fields
+      document.getElementById('line').value = '';
+      document.getElementById('lspc').value = '';
+      document.getElementById('rspc').value = '';
+      document.getElementById('tcn').value = '';
+      document.getElementById('tbd').value = '';
+      document.getElementById('tbw').value = '';
+      document.getElementById('tcm').value = '';
+      document.getElementById('sizer').value = '';
+      document.getElementById('acc1').value = '';
+      document.getElementById('acc2').value = '';
+      document.getElementById('acc3').value = '';
+      document.getElementById('acc4').value = '';
+
+      // Reset output fields
+      document.getElementById('bins').textContent = '*';
+      document.getElementById('pelletsLeft').textContent = '*';
+      document.getElementById('casesLeft').textContent = '*';
+      document.getElementById('casesOnLine').textContent = '*';
+      document.getElementById('avgBinWeight').textContent = '*';
+      document.getElementById('lineUtil').textContent = '*';
+    }
+  </script>
+</body>
+</html>
