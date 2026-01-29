@@ -11,7 +11,7 @@ This calculator supports a **fruit packing line** workflow. The physical process
 1. **CBT (Central Bin Tippper)** — fruit bins are dumped here to start the line
 2. **Wash / Treatment / Dryer** — fruit is cleaned and dried
 3. **Sizer** — fruit is sorted by size; "sizer fullness %" indicates how much fruit is currently on the line at this stage
-4. **Accumulators** — buffer lanes that hold fruit before it reaches the baggers; if a bagger goes down, the line keeps running and fruit accumulates here instead of stopping. Lines 1 and 4 have 3 accumulators; all other lines have 4.
+4. **Accumulators** — buffer lanes that hold fruit before it reaches the baggers; if a bagger goes down, the line keeps running and fruit accumulates here instead of stopping. All lines have 4 accumulators, but lines 1 and 4 have a shorter sizer so only 3 accumulator readings are used in the average.
 5. **Baggers** — fruit is bagged into 1 lb, 2 lb, 3 lb, or 5 lb bags
 6. **Case packing** — bags are packed into cases that must weigh 30 lbs each, so the number of bags per case varies by bag weight (1 lb → 87 bags, 2 lb → 48, 3 lb → 32, 5 lb → 17 bags, accounting for bag/packaging overhead)
 7. **Palletizing** — finished cases are stacked onto pallets (60 cases/pallet normally, 90 cases/pallet for left-side packcode 4)
@@ -66,7 +66,7 @@ Bins to ask for, Pallets left, Cases left, Cases on line, Average bin weight, Li
 ### Key Calculation Logic (`calculate()`)
 
 1. **Bag count per packcode** (`bagp`): maps right-side packcode to bags per case — each case must weigh 30 lbs, so lighter bags mean more bags per case (1 lb->87, 2 lb->48, 3 lb->32, 5 lb->17)
-2. **Accumulator average** (`tfull`): averages accumulator fullness — 3 accumulators for lines 1/4 (they physically have 3), 4 accumulators for all other lines
+2. **Accumulator average** (`tfull`): averages accumulator fullness — uses 3 readings for lines 1/4 (shorter sizer), 4 readings for all other lines
 3. **Core formulas**: bags needed, average bin weight, total bags on line, bins to request, cases left, line utilization %
 4. All results are integers via `Math.floor()`
 
@@ -93,5 +93,5 @@ Clears all 12 inputs and resets all 6 outputs to `*`.
 
 - The packcode-to-bag mapping only handles values 1, 2, 3, 5 — other values leave `bagp` at 0
 - Division by zero is possible if `tbd` (total bins dumped) is 0 (used as divisor for average bin weight)
-- Lines 1 and 4 use 3 accumulators; all other lines use 4 — this is intentional domain logic
+- Lines 1 and 4 only use 3 accumulator readings (shorter sizer); all other lines use 4
 - Pallets-left calculation uses 90 cases/pallet when `lspc` is 4, otherwise 60
