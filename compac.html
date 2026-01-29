@@ -124,8 +124,8 @@
     </div>
 
     <div>
-      <label>Pellets left:</label>
-      <span class="output" id="pelletsLeft">*</span>
+      <label>Pallets left:</label>
+      <span class="output" id="palletsLeft">*</span>
     </div>
 
     <div>
@@ -219,7 +219,7 @@
         }
         const uti2 = Math.floor(uti * 100);
 
-        // pellets left calculation
+        // pallets left calculation
         let pleft = 0;
         if (i1 === 4) {
           pleft = Math.floor(cleft / 90);
@@ -229,7 +229,7 @@
 
         // Update fields
         document.getElementById('bins').textContent = binsAsk;
-        document.getElementById('pelletsLeft').textContent = pleft;
+        document.getElementById('palletsLeft').textContent = pleft;
         document.getElementById('casesLeft').textContent = cleft;
         document.getElementById('casesOnLine').textContent = tbol_c;
         document.getElementById('avgBinWeight').textContent = abw;
@@ -257,7 +257,7 @@
 
       // Reset output fields
       document.getElementById('bins').textContent = '*';
-      document.getElementById('pelletsLeft').textContent = '*';
+      document.getElementById('palletsLeft').textContent = '*';
       document.getElementById('casesLeft').textContent = '*';
       document.getElementById('casesOnLine').textContent = '*';
       document.getElementById('avgBinWeight').textContent = '*';
