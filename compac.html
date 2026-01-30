@@ -16,7 +16,7 @@
       width: 200px;
       margin-bottom: 0.5rem;
     }
-    input {
+    input, select {
       width: 100px;
       margin-bottom: 0.5rem;
     }
@@ -57,17 +57,28 @@
     <!-- Input Fields -->
     <div>
       <label for="line">Pack line:</label>
-      <input type="number" id="line" />
+      <select id="line" onchange="toggleAcc4()">
+        <option value="">--</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
     </div>
 
     <div>
-      <label for="lspc">Left side packcode:</label>
-      <input type="number" id="lspc" />
-    </div>
-
-    <div>
-      <label for="rspc">Right side packcode:</label>
-      <input type="number" id="rspc" />
+      <label for="bagwt">Bag weight:</label>
+      <select id="bagwt">
+        <option value="">--</option>
+        <option value="1">1 lb</option>
+        <option value="2">2 lb</option>
+        <option value="3">3 lb</option>
+        <option value="5">5 lb</option>
+      </select>
     </div>
 
     <div>
@@ -110,7 +121,7 @@
       <input type="number" id="acc3" />
     </div>
 
-    <div>
+    <div id="acc4row">
       <label for="acc4">Accumulator 4:</label>
       <input type="number" id="acc4" />
     </div>
@@ -156,78 +167,90 @@
   </div>
 
   <script>
+    // Hide/show accumulator 4 based on line selection
+    function toggleAcc4() {
+      var lineVal = parseInt(document.getElementById('line').value);
+      var acc4row = document.getElementById('acc4row');
+      if (lineVal === 1 || lineVal === 4) {
+        acc4row.style.display = 'none';
+        document.getElementById('acc4').value = '';
+      } else {
+        acc4row.style.display = '';
+      }
+    }
+
+    // Bag weight lookup tables
+    var bagpMap = { 1: 87, 2: 48, 3: 32, 5: 17 };       // bags per % line fullness
+    var bagsPerCase = { 1: 30, 2: 15, 3: 10, 5: 6 };     // 30 lbs / bag weight
+
     function calculate() {
       try {
-        // Retrieve numeric input values
-        const i1 = parseInt(document.getElementById('lspc').value);
-        const i2 = parseInt(document.getElementById('rspc').value);
-        const i3 = parseInt(document.getElementById('tcn').value);
-        const i4 = parseInt(document.getElementById('tbd').value);
-        const i5 = parseInt(document.getElementById('tbw').value);
-        const i6 = parseInt(document.getElementById('tcm').value);
-        const i7 = parseInt(document.getElementById('sizer').value);
-        const i8 = parseInt(document.getElementById('acc1').value);
-        const i9 = parseInt(document.getElementById('acc2').value);
-        const i10 = parseInt(document.getElementById('acc3').value);
-        const i11 = parseInt(document.getElementById('acc4').value);
-        const lineVal = parseInt(document.getElementById('line').value);
+        var lineVal = parseInt(document.getElementById('line').value);
+        var bagWt   = parseInt(document.getElementById('bagwt').value);
+        var i3  = parseInt(document.getElementById('tcn').value);
+        var i4  = parseInt(document.getElementById('tbd').value);
+        var i5  = parseInt(document.getElementById('tbw').value);
+        var i6  = parseInt(document.getElementById('tcm').value);
+        var i7  = parseInt(document.getElementById('sizer').value);
+        var i8  = parseInt(document.getElementById('acc1').value);
+        var i9  = parseInt(document.getElementById('acc2').value);
+        var i10 = parseInt(document.getElementById('acc3').value);
 
-        // If any field is NaN, throw an error
-        if ([i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, lineVal].some(isNaN)) {
-          throw new Error('Please enter valid integers in all fields.');
+        var required = [lineVal, bagWt, i3, i4, i5, i6, i7, i8, i9, i10];
+
+        // Lines with 4 accumulators need acc4
+        var i11 = 0;
+        if (lineVal !== 1 && lineVal !== 4) {
+          i11 = parseInt(document.getElementById('acc4').value);
+          required.push(i11);
         }
 
-        // Determine bagp based on right side packcode
-        let bagp = 0;
-        if (i2 === 1) {
-          bagp = 87;
-        } else if (i2 === 2) {
-          bagp = 48;
-        } else if (i2 === 3) {
-          bagp = 32;
-        } else if (i2 === 5) {
-          bagp = 17;
+        if (required.some(isNaN)) {
+          throw new Error('Please enter valid values in all fields.');
         }
 
-        // Calculate tfull
-        let tfull = 0;
+        var bpc  = bagsPerCase[bagWt]; // bags per case (30/bagWt)
+        var bagp = bagpMap[bagWt];     // bags per % line fullness
+
+        // Calculate accumulator average
+        var tfull = 0;
         if (lineVal === 1 || lineVal === 4) {
           tfull = (i8 + i9 + i10) / 3;
         } else {
           tfull = (i8 + i9 + i10 + i11) / 4;
         }
 
-        const bndd   = i1 * i3;              // bags needed
-        const abw    = Math.floor(i5 / i4);  // average bin weight
-        const tlp    = tfull + i7;           // total line percentage
-        const tbol   = tlp * bagp;           // total bags on line
-        const tbol_c = Math.floor(tbol / i1); // total cases on line
-        const bpkd   = i6 * i1;              // bags packed
-        const bpro   = tbol + bpkd;          // bags on line + bags packed
-        const bleft  = bndd - bpro;          // bags left
-        const wndd   = bleft * (i2 + 0.25);  // weight needed
-        const bnleft = Math.floor(wndd / abw);  // bins left to dump
-        const binsAsk = bnleft + i4;         // bins total to ask for
-        const cleft  = i3 - i6;              // cases left
-        const caseW  = i1 * i2;              // weight of one case
-        const wmade  = (i6 + tbol_c) * caseW; // weight packed + weight on line
+        var bndd   = bpc * i3;                  // bags needed
+        var abw    = Math.floor(i5 / i4);       // average bin weight
+        var tlp    = tfull + i7;                 // total line percentage
+        var tbol   = tlp * bagp;                 // total bags on line
+        var tbol_c = Math.floor(tbol / bpc);     // total cases on line
+        var bpkd   = i6 * bpc;                  // bags packed
+        var bpro   = tbol + bpkd;               // bags on line + bags packed
+        var bleft  = bndd - bpro;               // bags left
+        var wndd   = bleft * (bagWt + 0.25);    // weight needed
+        var bnleft = Math.floor(wndd / abw);    // bins left to dump
+        var binsAsk = bnleft + i4;              // bins total to ask for
+        var cleft  = i3 - i6;                   // cases left
+        var caseW  = bpc * bagWt;               // weight of one case
+        var wmade  = (i6 + tbol_c) * caseW;     // weight packed + weight on line
 
         // utilization ratio
-        let uti = 0;
+        var uti = 0;
         if (i5 !== 0) {
           uti = wmade / i5;
         }
-        const uti2 = Math.floor(uti * 100);
+        var uti2 = Math.floor(uti * 100);
 
-        // pallets left calculation
-        let pleft = 0;
-        if (i1 === 4) {
+        // pallets left — line 4 uses 90 cases/pallet, others use 60
+        var pleft = 0;
+        if (lineVal === 4) {
           pleft = Math.floor(cleft / 90);
         } else {
           pleft = Math.floor(cleft / 60);
         }
 
-        // Update fields
+        // Update output fields
         document.getElementById('bins').textContent = binsAsk;
         document.getElementById('palletsLeft').textContent = pleft;
         document.getElementById('casesLeft').textContent = cleft;
@@ -243,8 +266,7 @@
     function resetFields() {
       // Clear input fields
       document.getElementById('line').value = '';
-      document.getElementById('lspc').value = '';
-      document.getElementById('rspc').value = '';
+      document.getElementById('bagwt').value = '';
       document.getElementById('tcn').value = '';
       document.getElementById('tbd').value = '';
       document.getElementById('tbw').value = '';
@@ -254,6 +276,7 @@
       document.getElementById('acc2').value = '';
       document.getElementById('acc3').value = '';
       document.getElementById('acc4').value = '';
+      document.getElementById('acc4row').style.display = '';
 
       // Reset output fields
       document.getElementById('bins').textContent = '*';

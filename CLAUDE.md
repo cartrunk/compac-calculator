@@ -13,8 +13,8 @@ This calculator supports a **fruit packing line** workflow. The physical process
 3. **Sizer** — fruit is sorted by size; "sizer fullness %" indicates how much fruit is currently on the line at this stage
 4. **Accumulators** — buffer lanes that hold fruit before it reaches the baggers; if a bagger goes down, the line keeps running and fruit accumulates here instead of stopping. Lines 1 and 4 have 3 accumulators; all other lines have 4.
 5. **Baggers** — fruit is bagged into 1 lb, 2 lb, 3 lb, or 5 lb bags
-6. **Case packing** — bags are packed into cases that must weigh 30 lbs each, so the number of bags per case varies by bag weight (1 lb → 87 bags, 2 lb → 48, 3 lb → 32, 5 lb → 17 bags, accounting for bag/packaging overhead)
-7. **Palletizing** — finished cases are stacked onto pallets (60 cases/pallet normally, 90 cases/pallet for left-side packcode 4)
+6. **Case packing** — bags are packed into cases that must weigh 30 lbs each, so bags per case = 30 / bag weight (1 lb → 30, 2 lb → 15, 3 lb → 10, 5 lb → 6)
+7. **Palletizing** — finished cases are stacked onto pallets (60 cases/pallet normally, 90 cases/pallet on line 4 which has smaller cases)
 
 The calculator's main job is to tell the operator **how many bins to request from CBT** so they can fulfill their case order without over- or under-requesting.
 
@@ -42,22 +42,22 @@ compac-calculator/
 Everything lives in a single HTML file (`compac.html`):
 
 - **`<style>`** block (lines 6-51): CSS with a dark terminal aesthetic (black background, green text, DodgerBlue buttons)
-- **HTML body** (lines 53-156): 12 input fields, 6 output fields, Calculate and Reset buttons
-- **`<script>`** block (lines 158-266): two functions — `calculate()` and `resetFields()`
+- **HTML body** (lines 53-167): 10 input fields (2 dropdowns + 8 number inputs), 6 output fields, Calculate and Reset buttons
+- **`<script>`** block (lines 169-291): three functions — `toggleAcc4()`, `calculate()`, and `resetFields()`
 
-### Input Fields (12)
+### Input Fields (10)
 
-| ID     | Label                 |
-|--------|-----------------------|
-| line   | Pack line             |
-| lspc   | Left side packcode    |
-| rspc   | Right side packcode   |
-| tcn    | Total cases needed    |
-| tbd    | Total bins dumped     |
-| tbw    | Total bin weight      |
-| tcm    | Total cases made      |
-| sizer  | Sizer fullness %      |
-| acc1-4 | Accumulator 1-4       |
+| ID     | Type     | Label                 |
+|--------|----------|-----------------------|
+| line   | dropdown | Pack line (1-8)       |
+| bagwt  | dropdown | Bag weight (1,2,3,5 lb) |
+| tcn    | number   | Total cases needed    |
+| tbd    | number   | Total bins dumped     |
+| tbw    | number   | Total bin weight      |
+| tcm    | number   | Total cases made      |
+| sizer  | number   | Sizer fullness %      |
+| acc1-3 | number   | Accumulator 1-3       |
+| acc4   | number   | Accumulator 4 (hidden on lines 1/4) |
 
 ### Output Fields (6)
 
@@ -65,14 +65,14 @@ Bins to ask for, Pallets left, Cases left, Cases on line, Average bin weight, Li
 
 ### Key Calculation Logic (`calculate()`)
 
-1. **Bag count per packcode** (`bagp`): maps right-side packcode to bags per case — each case must weigh 30 lbs, so lighter bags mean more bags per case (1 lb->87, 2 lb->48, 3 lb->32, 5 lb->17)
-2. **Accumulator average** (`tfull`): averages accumulator fullness — 3 accumulators on lines 1/4, 4 on all other lines
+1. **Bag weight selection** derives two values: `bagsPerCase` (30/weight: 30, 15, 10, 6) and `bagp` (bags per % line fullness: 87, 48, 32, 17)
+2. **Accumulator average** (`tfull`): averages accumulator fullness — 3 accumulators on lines 1/4, 4 on all other lines. Accumulator 4 field is hidden when line 1 or 4 is selected.
 3. **Core formulas**: bags needed, average bin weight, total bags on line, bins to request, cases left, line utilization %
 4. All results are integers via `Math.floor()`
 
 ### `resetFields()`
 
-Clears all 12 inputs and resets all 6 outputs to `*`.
+Clears all inputs, resets dropdowns to default, shows accumulator 4, and resets all 6 outputs to `*`.
 
 ## Code Conventions
 
@@ -91,7 +91,7 @@ Clears all 12 inputs and resets all 6 outputs to `*`.
 
 ## Things to Watch For
 
-- The packcode-to-bag mapping only handles values 1, 2, 3, 5 — other values leave `bagp` at 0
+- Pack line and bag weight are dropdowns — no free-text entry, prevents invalid values
 - Division by zero is possible if `tbd` (total bins dumped) is 0 (used as divisor for average bin weight)
-- Lines 1 and 4 have only 3 accumulators; all other lines have 4
-- Pallets-left calculation uses 90 cases/pallet when `lspc` is 4, otherwise 60
+- Lines 1 and 4 have only 3 accumulators; accumulator 4 field is auto-hidden for those lines
+- Pallets-left calculation uses 90 cases/pallet on line 4 (smaller cases), 60 on all other lines
