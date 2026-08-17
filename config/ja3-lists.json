@@ -1,0 +1,5 @@
+{
+  "_comment": "Operator-supplied JA3 hashes. Populate from your own traffic logs (src/logging/logger.js records every flagged session's JA3) or a public corpus you trust — nothing is pre-populated here because an unverified list creates false confidence. denylist entries add +50 to the JA3 signal score; allowlist entries zero it out entirely.",
+  "denylist": [],
+  "allowlist": []
+}
