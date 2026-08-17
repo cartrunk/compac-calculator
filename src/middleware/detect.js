@@ -55,9 +55,23 @@ function createDetectMiddleware({ rateTracker, ja3Lists = {} }) {
     const ja3fp = getJA3(req);
     const ja3Signal = analyzeJA3(ja3fp, ja3Lists);
 
-    const rateKey = `${req.ip}:${sessionId}`;
-    const rateRaw = rateTracker.track(rateKey, req.path);
-    const rateSignal = analyzeRate(rateRaw);
+    // Two independent rate windows: per-session (catches a single session
+    // hammering the site) and per-actor (JA3 fingerprint, or IP when no
+    // TLS fingerprint is available) — the latter specifically so that
+    // cycling session cookies/accounts to reset the per-session window
+    // doesn't also reset the clock on the underlying tooling. The worse
+    // of the two wins.
+    const sessionRateRaw = rateTracker.track(`session:${req.ip}:${sessionId}`, req.path);
+    const sessionRateSignal = analyzeRate(sessionRateRaw);
+
+    const actorKey = ja3fp ? `actor:ja3:${ja3fp.ja3}` : `actor:ip:${req.ip}`;
+    const actorRateRaw = rateTracker.track(actorKey, req.path);
+    const actorRateSignal = analyzeRate(actorRateRaw);
+
+    const rateSignal =
+      actorRateSignal.score >= sessionRateSignal.score
+        ? { score: actorRateSignal.score, reasons: actorRateSignal.reasons.map((r) => `[per-actor] ${r}`) }
+        : { score: sessionRateSignal.score, reasons: sessionRateSignal.reasons.map((r) => `[per-session] ${r}`) };
 
     const telemetrySignal = telemetryStore.get(sessionId);
 
@@ -84,6 +98,7 @@ function createDetectMiddleware({ rateTracker, ja3Lists = {} }) {
       logFlaggedRequest({
         sessionId,
         ip: req.ip,
+        ja3: ja3fp ? ja3fp.ja3 : null,
         method: req.method,
         path: req.originalUrl,
         userAgent: req.headers['user-agent'] || null,

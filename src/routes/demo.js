@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const { logAttempt } = require('../logging/logger');
+const { getJA3 } = require('../fingerprint/ja3');
 
 const router = express.Router();
 
@@ -46,6 +48,11 @@ router.get('/', (req, res) => {
     ${Array.from({ length: 10 }, (_, i) => `<li><a href="/data/${i + 1}">/data/${i + 1}</a></li>`).join('\n    ')}
   </ul>
   <p>Reload this page after a couple seconds and the score may change once client telemetry reports in.</p>
+  <p>Simulated limited-inventory drop (this is the part that matters for scalping specifically —
+  hitting <code>/checkout</code> repeatedly is logged as an acquisition attempt, not just a page view):</p>
+  <ul>
+    <li><a href="/checkout/drop-item-1">/checkout/drop-item-1</a></li>
+  </ul>
   `;
   res.set('Content-Type', 'text/html');
   res.send(layout('Scraper Sentry', body));
@@ -63,6 +70,38 @@ router.get('/data/:id', (req, res) => {
   `;
   res.set('Content-Type', 'text/html');
   res.send(layout(`Record ${id}`, body));
+});
+
+router.get('/checkout/:itemId', (req, res) => {
+  const d = req.detection;
+  const ja3fp = getJA3(req);
+  const quantity = Math.min(parseInt(req.query.qty, 10) || 1, 999);
+
+  // Logged regardless of verdict — a low-scoring first attempt from an
+  // actor who only later gets flagged (once enough of their sessions
+  // cluster together) still belongs in that actor's timeline.
+  logAttempt({
+    sessionId: d.sessionId,
+    ip: req.ip,
+    ja3: ja3fp ? ja3fp.ja3 : null,
+    itemId: req.params.itemId,
+    quantity,
+    score: d.score,
+    verdict: d.verdict,
+    outcome: d.verdict === 'flag' ? 'blocked-for-demo' : 'allowed',
+  });
+
+  const body = `
+  <h1>Checkout — ${escapeHtml(req.params.itemId)}</h1>
+  <p>Quantity: ${quantity}</p>
+  <p>This simulates a limited-inventory acquisition (ticket, sneaker drop, restock, etc.). A real
+  integration calls <code>logAttempt()</code> from the actual checkout/reservation handler, right
+  next to wherever inventory gets decremented.</p>
+  <p>score: ${d.score}/100 (${d.verdict})</p>
+  <p><a href="/">&larr; back</a></p>
+  `;
+  res.set('Content-Type', 'text/html');
+  res.send(layout('Checkout', body));
 });
 
 router.get('/__debug/score', (req, res) => {
